@@ -1,0 +1,132 @@
+#!/usr/bin/perl
+
+# Copyright (c) 2014 Todd T. Fries <todd@fries.net>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+use strict;
+use warnings;
+
+my $templateMakefile = "
+# \$OpenBSD \$
+
+COMMENT=	%COMMENT%
+
+MODULES=	cpan
+DISTNAME=	%DISTNAME%
+PKGNAME=	p5-\${DISTNAME}
+CATEGORIES=	%CATEGORY%
+
+MAINTAINER =    %MAINT%
+
+# Perl
+PERMIT_PACKAGE_CDROM=	Yes
+
+#RUN_DEPENDS=	
+
+#BUILD_DEPENDS=	\${RUN_DEPENDS}
+
+.include <bsd.port.mk>
+";
+
+my ($category,$name,$rev) = ($ARGV[0], $ARGV[1], $ARGV[2]);
+
+if (!defined($rev)) {
+	Usage();
+}
+
+my $conf = $ENV{'HOME'}."/.newcpanrc";
+
+my $askmaint = 0;
+my $maintainer;
+if (-f $conf) {
+	chomp($maintainer=`cat $conf`);
+} else {
+	$askmaint = 1;
+}
+if (!defined($maintainer) || length($maintainer) < 1) {
+	$askmaint = 1;
+}
+if ($askmaint == 1) {
+	print STDERR "Maintainer line? ";
+	chomp($maintainer = <stdin>);
+	open(CONF, '>', $conf);
+	print CONF $maintainer;
+	close(CONF);
+}
+
+# XXX auto retrieve comment/dep suggestions from CPAN ?
+my $comment;
+print STDERR "COMMENT line? ";
+chomp($comment = <stdin>);
+
+my $path = $name;
+$path =~ s/::/-/g;
+
+my $distname = $path;
+$distname .= "-".$rev;
+
+$templateMakefile =~ s/%COMMENT%/$comment/;
+$templateMakefile =~ s/%DISTNAME%/$distname/;
+$templateMakefile =~ s/%CATEGORY%/$category/;
+$templateMakefile =~ s/%MAINT%/$maintainer/;
+
+my $basedir = "/usr/ports/openbsd-wip";
+
+my $catdir = $basedir."/$category";
+my $fullpath = $catdir."/p5-$path;
+if ( -d $fullpath ) {
+	printf STDERR "path exists, bailing: %s\n", $fullpath;
+	exit(1);
+}
+
+if (! -d $basedir) {
+	printf STDERR "basedir does not exist, bailing: %s\n", $basedir;
+	exit(1);
+}
+
+if (! -d $catdir) {
+	if (! mkdir($catdir)) {
+		printf STDERR "failed to create catdir, bailing: %s\n", $catdir;
+		exit(1);
+	}
+}
+
+if (! mkdir($fullpath)) {
+	printf STDERR "failed to create fullpath, bailing: %s\n", $fullpath;
+	exit(1);
+}
+
+if (! chdir($fullpath)) {
+	printf STDERR "failed to chdir to fullpath, bailing: %s\n", $fullpath;
+	exit(1);
+}
+
+open(MF, ">", "Makefile");
+print MF $templateMakefile;
+close(MF);
+
+if (! system("make makesum")) {
+	print STDERR "failed to 'make makesum', bailing\n";
+	exit(1);
+}
+if (! system("make plist")) {
+	print STDERR "failed to 'make plist', bailing\n";
+	exit(1);
+}
+
+sub Usage
+{
+	print STDERR "Usage: newcpan <category> <name> <rev>\n";
+	exit(1);
+}
