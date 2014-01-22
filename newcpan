@@ -17,8 +17,7 @@
 use strict;
 use warnings;
 
-my $templateMakefile = "
-# \$OpenBSD \$
+my $templateMakefile = "# \$OpenBSD \$
 
 COMMENT=	%COMMENT%
 
@@ -101,7 +100,8 @@ if (! -d $basedir) {
 
 if (! -d $catdir) {
 	if (! mkdir($catdir)) {
-		printf STDERR "failed to create catdir, bailing: %s\n", $catdir;
+		printf STDERR "failed to create catdir, bailing: %s\n",
+		    $catdir;
 		exit(1);
 	}
 }
@@ -110,24 +110,35 @@ if (! mkdir($fullpath)) {
 	printf STDERR "failed to create fullpath, bailing: %s\n", $fullpath;
 	exit(1);
 }
+if (! mkdir($fullpath."/pkg")) {
+	printf STDERR "failed to create fullpath/pkg, bailing: %s/pkg\n",
+	    $fullpath;
 
 if (! chdir($fullpath)) {
 	printf STDERR "failed to chdir to fullpath, bailing: %s\n", $fullpath;
 	exit(1);
 }
 
-open(MF, ">", "Makefile");
+if (! open(MF, ">", "Makefile")) {
+	print STDERR "failed to open Makefile, bailing";
+	exit(1);
+}
 print MF $templateMakefile;
 close(MF);
 
-if (! system("make makesum")) {
-	print STDERR "failed to 'make makesum', bailing\n";
+if (! open(D, ">", "pkg/DESCR")) {
+	print STDERR "failed to open pkg/DESCR, bailing";
 	exit(1);
 }
-if (! system("make plist")) {
-	print STDERR "failed to 'make plist', bailing\n";
+print D $comment;
+close(D);
+
+if (! system("make makesum && make plist")) {
+	print STDERR "failed to 'make makesum && make plist', bailing\n";
 	exit(1);
 }
+
+exit(0);
 
 sub Usage
 {
