@@ -23,7 +23,6 @@ COMMENT=	%COMMENT%
 
 MODULES=	cpan
 DISTNAME=	%DISTNAME%
-PKGNAME=	p5-\${DISTNAME}
 CATEGORIES=	%CATEGORY%
 %EXTRA%
 MAINTAINER =    %MAINT%
@@ -134,7 +133,8 @@ if (! open(D, ">", "pkg/DESCR")) {
 print D $comment;
 close(D);
 
-if (! system("make makesum && make plist")) {
+system("make makesum && make plist");
+if (! -f "pkg/PLIST" || -z "pkg/PLIST") {
 	print STDERR "failed to 'make makesum && make plist', bailing\n";
 	exit(1);
 }
