@@ -113,6 +113,7 @@ if (! mkdir($fullpath)) {
 if (! mkdir($fullpath."/pkg")) {
 	printf STDERR "failed to create fullpath/pkg, bailing: %s/pkg\n",
 	    $fullpath;
+}
 
 if (! chdir($fullpath)) {
 	printf STDERR "failed to chdir to fullpath, bailing: %s\n", $fullpath;
