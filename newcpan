@@ -26,7 +26,7 @@ MODULES=	cpan
 DISTNAME=	%DISTNAME%
 PKGNAME=	p5-\${DISTNAME}
 CATEGORIES=	%CATEGORY%
-
+%EXTRA%
 MAINTAINER =    %MAINT%
 
 # Perl
@@ -76,15 +76,19 @@ $path =~ s/::/-/g;
 my $distname = $path;
 $distname .= "-".$rev;
 
+# XXX auto nab CPAN_AUTHOR ?
+my $extra = "";
+
 $templateMakefile =~ s/%COMMENT%/$comment/;
 $templateMakefile =~ s/%DISTNAME%/$distname/;
 $templateMakefile =~ s/%CATEGORY%/$category/;
 $templateMakefile =~ s/%MAINT%/$maintainer/;
+$templateMakefile =~ s/%EXTRA%/$extra/;
 
 my $basedir = "/usr/ports/openbsd-wip";
 
-my $catdir = $basedir."/$category";
-my $fullpath = $catdir."/p5-$path;
+my $catdir = $basedir."/".$category;
+my $fullpath = $catdir."/p5-".$path;
 if ( -d $fullpath ) {
 	printf STDERR "path exists, bailing: %s\n", $fullpath;
 	exit(1);
